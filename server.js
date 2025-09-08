@@ -5,8 +5,9 @@ const path = require('path');
 
 const app = express();
 
-// Serve static frontend files
-app.use(express.static(path.join(__dirname)));
+// Serve static frontend files from public directory
+app.use(express.static(path.join(__dirname, 'public')));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -34,9 +35,16 @@ app.post('/send-email', async (req, res) => {
     // Check if email credentials are configured
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
         console.log('Email credentials not configured');
+        // For development, log the form data instead of sending email
+        console.log('Form submission received:');
+        console.log('Name:', user_name);
+        console.log('Email:', user_email);
+        console.log('Subject:', subject);
+        console.log('Message:', message);
+        
         return res.status(200).json({
             success: true,
-            message: 'Message received! (Email notification not configured)'
+            message: 'Message received successfully! (Email notification not configured)'
         });
     }
 
@@ -53,17 +61,17 @@ app.post('/send-email', async (req, res) => {
         to: process.env.EMAIL_USER,
         subject: `Portfolio Contact: ${subject}`,
         text: `
-Name: ${user_name}
-Email: ${user_email}
-Subject: ${subject}
-Message: ${message}
-        `,
-        html: `
-<h3>New Contact Form Submission</h3>
-<p><strong>Name:</strong> ${user_name}</p>
-<p><strong>Email:</strong> ${user_email}</p>
-<p><strong>Subject:</strong> ${subject}</p>
-<p><strong>Message:</strong> ${message}</p>
+            Name: ${user_name}
+            Email: ${user_email}
+            Subject: ${subject}
+            Message: ${message}
+                    `,
+                    html: `
+            <h3>New Contact Form Submission</h3>
+            <p><strong>Name:</strong> ${user_name}</p>
+            <p><strong>Email:</strong> ${user_email}</p>
+            <p><strong>Subject:</strong> ${subject}</p>
+            <p><strong>Message:</strong> ${message}</p>
         `
     };
 
@@ -85,10 +93,20 @@ Message: ${message}
 
 // Health check endpoint for Render
 app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'OK', message: 'Server is running' });
+    res.status(200).json({ 
+        status: 'OK', 
+        message: 'Server is running',
+        emailConfigured: !!(process.env.EMAIL_USER && process.env.EMAIL_PASS)
+    });
+});
+
+// Serve index.html for all other routes - FIXED SYNTAX
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server running on port http://localhost:${PORT}`);
+    console.log('Email configured:', !!(process.env.EMAIL_USER && process.env.EMAIL_PASS));
 });
